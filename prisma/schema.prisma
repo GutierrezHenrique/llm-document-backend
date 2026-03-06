@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// RAG: document metadata + chunks (keywords for cheap retrieval, optional embedding)
+model RagDocument {
+  id        String    @id @default(cuid())
+  fileId    String    @unique
+  category  String?   // LLM classification (e.g. technical, legal)
+  keywords  String?   // JSON array of document-level keywords
+  createdAt DateTime  @default(now())
+  chunks    RagChunk[]
+}
+
+model RagChunk {
+  id         String     @id @default(cuid())
+  documentId String
+  document   RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int
+  text       String
+  keywords   String?    // JSON array of keywords (no LLM - extracted locally)
+  embedding  String?    // optional: JSON array of numbers (costly, for hybrid/semantic)
+}
+
+// RAG: conversation history per document (for prompt context and persistence)
+model RagConversation {
+  id        String      @id @default(cuid())
+  fileId    String      // document fileId (no FK to keep it flexible)
+  createdAt DateTime    @default(now())
+  messages  RagMessage[]
+}
+
+model RagMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   RagConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // "user" | "assistant"
+  content        String
+  snippets       String?        // JSON array of strings (assistant only)
+  createdAt      DateTime      @default(now())
+}
+
+model RagPromptPreference {
+  id                 String   @id @default(cuid())
+  fileId             String   @unique
+  customInstructions String?
+  updatedAt          DateTime @updatedAt
+}
