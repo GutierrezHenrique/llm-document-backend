@@ -49,7 +49,8 @@ export class QueryRagDocumentUseCase {
     const snippetSourceFileIds = fileId === 'all' ? chunks.map((c) => c.sourceFileId ?? '') : undefined;
     const history = await this.convRepo.getMessages(conversationId, HISTORY_MESSAGES_LIMIT);
 
-    const system = PROMPTS.RAG_SYSTEM(systemPromptAddition);
+    const responseLanguage = process.env.RAG_RESPONSE_LANGUAGE?.trim() || undefined;
+    const system = PROMPTS.RAG_SYSTEM(systemPromptAddition, responseLanguage);
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [{ role: 'system', content: system }];
 
     for (const m of history) {
