@@ -21,10 +21,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --no-frozen-lockfile --prod
+RUN pnpm install --no-frozen-lockfile
 
 COPY prisma ./prisma/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+RUN pnpm prisma generate && pnpm prune --prod
+
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
