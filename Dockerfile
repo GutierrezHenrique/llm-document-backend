@@ -19,13 +19,13 @@ FROM node:20-alpine AS runner
 RUN corepack enable && corepack prepare pnpm@9 --activate
 WORKDIR /app
 
-ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --no-frozen-lockfile
 
 COPY prisma ./prisma/
 RUN pnpm prisma generate && pnpm prune --prod
 
+ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
