@@ -6,6 +6,7 @@ import { QueryRagDocumentUseCase } from '../../application/use-cases/rag/query-r
 import { CreateConversationUseCase } from '../../application/use-cases/rag/create-conversation.use-case';
 import { GetConversationMessagesUseCase } from '../../application/use-cases/rag/get-conversation-messages.use-case';
 import { DeleteConversationUseCase } from '../../application/use-cases/rag/delete-conversation.use-case';
+import { DeleteRagDocumentUseCase } from '../../application/use-cases/rag/delete-rag-document.use-case';
 import { GetDocumentChunksUseCase } from '../../application/use-cases/rag/get-document-chunks.use-case';
 import { FilterKnowledgeUseCase } from '../../application/use-cases/rag/filter-knowledge.use-case';
 import { GetPromptPreferenceUseCase } from '../../application/use-cases/rag/get-prompt-preference.use-case';
@@ -32,6 +33,7 @@ describe('RagController', () => {
         { provide: CreateConversationUseCase, useValue: { run: jest.fn() } },
         { provide: GetConversationMessagesUseCase, useValue: { run: jest.fn() } },
         { provide: DeleteConversationUseCase, useValue: { run: jest.fn() } },
+        { provide: DeleteRagDocumentUseCase, useValue: { run: jest.fn() } },
         { provide: GetDocumentChunksUseCase, useValue: { run: jest.fn() } },
         { provide: FilterKnowledgeUseCase, useValue: { run: jest.fn() } },
         { provide: GetPromptPreferenceUseCase, useValue: { run: jest.fn() } },
@@ -71,6 +73,11 @@ describe('RagController', () => {
   it('should call deleteConversation', async () => {
       await controller.deleteConversation('c1');
       expect(module.get(DeleteConversationUseCase).run).toHaveBeenCalledWith('c1');
+  });
+
+  it('should call deleteRagDocument when deleting document', async () => {
+      await controller.deleteDocument('doc-123');
+      expect(module.get(DeleteRagDocumentUseCase).run).toHaveBeenCalledWith('doc-123');
   });
 
   it('should call getDocumentChunks', async () => {

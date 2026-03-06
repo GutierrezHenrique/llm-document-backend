@@ -8,6 +8,7 @@ import { QueryRagDocumentUseCase } from '../../application/use-cases/rag/query-r
 import { CreateConversationUseCase } from '../../application/use-cases/rag/create-conversation.use-case';
 import { GetConversationMessagesUseCase } from '../../application/use-cases/rag/get-conversation-messages.use-case';
 import { DeleteConversationUseCase } from '../../application/use-cases/rag/delete-conversation.use-case';
+import { DeleteRagDocumentUseCase } from '../../application/use-cases/rag/delete-rag-document.use-case';
 import { GetDocumentChunksUseCase } from '../../application/use-cases/rag/get-document-chunks.use-case';
 import { FilterKnowledgeUseCase } from '../../application/use-cases/rag/filter-knowledge.use-case';
 import { GetPromptPreferenceUseCase } from '../../application/use-cases/rag/get-prompt-preference.use-case';
@@ -24,6 +25,7 @@ import { RagController } from './rag.controller';
     CreateConversationUseCase,
     GetConversationMessagesUseCase,
     DeleteConversationUseCase,
+    DeleteRagDocumentUseCase,
     GetDocumentChunksUseCase,
     FilterKnowledgeUseCase,
     GetPromptPreferenceUseCase,

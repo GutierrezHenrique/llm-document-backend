@@ -10,6 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "prisma:clean": "prisma db execute --file scripts/clean-db.sql --schema prisma/schema.prisma",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage"

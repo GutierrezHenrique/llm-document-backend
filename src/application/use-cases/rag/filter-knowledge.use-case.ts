@@ -30,37 +30,45 @@ export class FilterKnowledgeUseCase {
     if (allDocs.length === 0) return { documents: [] };
 
     const { category, keywords } = await this.llm.parseFilterDescription(filterDescription);
+    const searchKeywords = keywords?.map((k) => k.toLowerCase().trim()).filter(Boolean) ?? [];
+    const catLower = category?.toLowerCase().trim();
 
+    // Category filter: bidirectional (e.g. "report" matches "Technical Reports", "technical" matches "Technical")
     let docs: RagDocumentListItem[] = allDocs;
-    if (category || (keywords && keywords.length > 0)) {
-      const catLower = category?.toLowerCase().trim();
-      const kwSet = keywords?.length
-        ? new Set(keywords.map((k) => k.toLowerCase().trim()).filter(Boolean))
-        : null;
+    if (catLower) {
       docs = allDocs.filter((d) => {
-        const catMatch = !catLower || (d.category?.toLowerCase().includes(catLower) ?? false);
-        const docKw = d.keywords ?? [];
-        const kwMatch =
-          !kwSet ||
-          kwSet.size === 0 ||
-          docKw.some((k) => kwSet.has(k.toLowerCase().trim()));
-        return catMatch && kwMatch;
+        const docCat = d.category?.toLowerCase().trim() ?? '';
+        return docCat.includes(catLower) || catLower.includes(docCat);
       });
     }
 
     const result: FilteredDocumentItem[] = [];
+    const maxChunksPerDoc = 50;
+
     for (const d of docs) {
       const chunks: RagChunkRecord[] = await this.ragRepo.findChunksByFileId(d.fileId);
-      let filteredChunks = chunks;
-      if (keywords?.length) {
-        const kwSet = new Set(keywords.map((k) => k.toLowerCase().trim()).filter(Boolean));
-        filteredChunks = chunks.filter((c) =>
-          c.keywords.some((k) => kwSet.has(k.toLowerCase().trim())),
-        );
-        if (filteredChunks.length === 0) filteredChunks = chunks.slice(0, 20);
+
+      let filteredChunks: RagChunkRecord[];
+      if (searchKeywords.length > 0) {
+        // Match chunk if any search keyword appears in chunk text OR overlaps with chunk keywords (substring)
+        filteredChunks = chunks.filter((c) => {
+          const textLower = c.text.toLowerCase();
+          const chunkKwLower = c.keywords.map((k) => k.toLowerCase().trim());
+          return searchKeywords.some(
+            (sk) =>
+              textLower.includes(sk) ||
+              chunkKwLower.some((ck) => ck.includes(sk) || sk.includes(ck)),
+          );
+        });
+        // If no chunks match by keyword/text, exclude doc when we had keywords (semantic filter)
+        if (filteredChunks.length === 0) continue;
+        if (filteredChunks.length > maxChunksPerDoc) {
+          filteredChunks = filteredChunks.slice(0, maxChunksPerDoc);
+        }
       } else {
-        filteredChunks = chunks.slice(0, 50);
+        filteredChunks = chunks.slice(0, maxChunksPerDoc);
       }
+
       result.push({
         fileId: d.fileId,
         chunksCount: d.chunksCount,
@@ -72,6 +80,7 @@ export class FilterKnowledgeUseCase {
         ),
       });
     }
+
     return { documents: result };
   }
 }

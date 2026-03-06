@@ -6,6 +6,7 @@ import { QueryRagDocumentUseCase } from '../../application/use-cases/rag/query-r
 import { CreateConversationUseCase } from '../../application/use-cases/rag/create-conversation.use-case';
 import { GetConversationMessagesUseCase } from '../../application/use-cases/rag/get-conversation-messages.use-case';
 import { DeleteConversationUseCase } from '../../application/use-cases/rag/delete-conversation.use-case';
+import { DeleteRagDocumentUseCase } from '../../application/use-cases/rag/delete-rag-document.use-case';
 import { GetDocumentChunksUseCase } from '../../application/use-cases/rag/get-document-chunks.use-case';
 import { FilterKnowledgeUseCase } from '../../application/use-cases/rag/filter-knowledge.use-case';
 import { GetPromptPreferenceUseCase } from '../../application/use-cases/rag/get-prompt-preference.use-case';
@@ -21,6 +22,7 @@ export class RagController {
     private readonly createConversationUseCase: CreateConversationUseCase,
     private readonly getConversationMessagesUseCase: GetConversationMessagesUseCase,
     private readonly deleteConversationUseCase: DeleteConversationUseCase,
+    private readonly deleteRagDocumentUseCase: DeleteRagDocumentUseCase,
     private readonly getDocumentChunksUseCase: GetDocumentChunksUseCase,
     private readonly filterKnowledgeUseCase: FilterKnowledgeUseCase,
     private readonly getPromptPreferenceUseCase: GetPromptPreferenceUseCase,
@@ -30,6 +32,12 @@ export class RagController {
   @Get('documents')
   async listDocuments() {
     return this.listRag.run();
+  }
+
+  @Delete('documents/:fileId')
+  async deleteDocument(@Param('fileId') fileId: string) {
+    await this.deleteRagDocumentUseCase.run(fileId);
+    return { success: true };
   }
 
   @Post('upload-pdf')

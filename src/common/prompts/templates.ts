@@ -43,12 +43,21 @@ ${langRule}
 
   /**
    * Natural language filter parsing prompt.
+   * Extracts a broad category and 5–15 keywords/concepts so semantic search can match documents and chunk text.
    */
-  PARSE_FILTER: (description: string) => `The user wants to filter a knowledge base. They said: "${description.trim()}"
+  PARSE_FILTER: (description: string) => `You are helping to filter a knowledge base by meaning. The user said: "${description.trim()}"
 
-Respond with ONLY a JSON object (no markdown, no explanation):
-{"category":"optional single category e.g. technical, legal" , "keywords":["optional","array","of","keywords"]}
-Use "category" only if the description clearly implies one category. Use "keywords" for specific terms to match. If unclear, return {}.`,
+Extract:
+1. "category": one short category label ONLY if the description clearly implies a single topic (e.g. technical, legal, finance, report). Otherwise omit.
+2. "keywords": an array of 5 to 15 terms that will be used to find relevant documents. Include:
+   - Exact terms the user might have used
+   - Synonyms and related concepts (e.g. "contract" and "agreement", "cost" and "price")
+   - Concepts that might appear in document text or metadata (e.g. "revenue", "clause", "deadline")
+   Use lowercase. Prefer terms that are likely to appear literally in text.
+
+Respond with ONLY a JSON object, no markdown, no explanation:
+{"category":"optional single category","keywords":["term1","term2",...]}
+If the description is too vague or empty, return {}.`,
 
   /**
    * Document classification prompt.
