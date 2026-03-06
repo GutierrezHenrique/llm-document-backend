@@ -5,7 +5,7 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 COPY prisma ./prisma/
 RUN pnpm prisma generate
@@ -21,7 +21,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --no-frozen-lockfile --prod
 
 COPY prisma ./prisma/
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
