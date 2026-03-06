@@ -51,12 +51,15 @@ export class PrismaRagRepository implements IRagRepository {
     return chunks.length;
   }
 
-  private toChunkRecord(c: { id: string; text: string; keywords: string | null; embedding: string | null }): RagChunkRecord {
+  private toChunkRecord(
+    c: { id: string; text: string; keywords: string | null; embedding: string | null; sourceFileId?: string; document?: { fileId: string } },
+  ): RagChunkRecord {
     return {
       id: c.id,
       text: c.text,
       keywords: c.keywords ? (JSON.parse(c.keywords) as string[]) : [],
       embedding: c.embedding ? (JSON.parse(c.embedding) as number[]) : undefined,
+      sourceFileId: c.sourceFileId ?? c.document?.fileId,
     };
   }
 
@@ -65,6 +68,7 @@ export class PrismaRagRepository implements IRagRepository {
       const chunks = await this.prisma.ragChunk.findMany({
         take: 50,
         orderBy: { chunkIndex: 'asc' },
+        include: { document: { select: { fileId: true } } },
       });
       return chunks.map((c) => this.toChunkRecord(c as any));
     }
@@ -73,7 +77,7 @@ export class PrismaRagRepository implements IRagRepository {
       include: { chunks: { orderBy: { chunkIndex: 'asc' } } },
     });
     if (!doc?.chunks.length) return [];
-    return doc.chunks.map((c) => this.toChunkRecord(c as any));
+    return doc.chunks.map((c) => this.toChunkRecord({ ...(c as any), document: { fileId: doc.fileId } }));
   }
 
   async findChunksByFileIdAndKeywords(
@@ -86,24 +90,25 @@ export class PrismaRagRepository implements IRagRepository {
     const keywordsLower = [...new Set(queryKeywords.map((k) => k.toLowerCase().trim()).filter(Boolean))];
     if (keywordsLower.length === 0) return this.findChunksByFileId(fileId).then((chunks) => chunks.slice(0, limit));
     const safeLimit = Math.min(Math.max(limit, 1), 50);
-    type Row = { id: string; documentId: string; chunkIndex: number; text: string; keywords: string | null; embedding: string | null };
+    type Row = { id: string; documentId: string; chunkIndex: number; text: string; keywords: string | null; embedding: string | null; sourceFileId?: string };
     const keywordParams = keywordsLower.map((k) => Prisma.sql`${k}`);
     
     if (fileId === 'all') {
       const rows = await this.prisma.$queryRaw<Row[]>(
         Prisma.sql`
           WITH scored AS (
-            SELECT rc.id, rc."documentId", rc."chunkIndex", rc.text, rc.keywords, rc.embedding,
+            SELECT rc.id, rc."documentId", rc."chunkIndex", rc.text, rc.keywords, rc.embedding, rd."fileId" AS "sourceFileId",
               (SELECT COUNT(*) FROM jsonb_array_elements_text(rc.keywords::jsonb) AS t(elem)
                WHERE lower(trim(t.elem)) IN (${Prisma.join(keywordParams, ', ')})) AS match_count
             FROM "RagChunk" rc
+            INNER JOIN "RagDocument" rd ON rc."documentId" = rd.id
             WHERE rc.keywords IS NOT NULL
             AND EXISTS (
               SELECT 1 FROM jsonb_array_elements_text(rc.keywords::jsonb) AS t(elem)
               WHERE lower(trim(t.elem)) IN (${Prisma.join(keywordParams, ', ')})
             )
           )
-          SELECT id, "documentId", "chunkIndex", text, keywords, embedding FROM scored
+          SELECT id, "documentId", "chunkIndex", text, keywords, embedding, "sourceFileId" FROM scored
           ORDER BY match_count DESC, "chunkIndex" ASC
           LIMIT ${safeLimit}
         `,
@@ -111,7 +116,7 @@ export class PrismaRagRepository implements IRagRepository {
       return rows.map((c) => this.toChunkRecord(c as any));
     }
 
-    const doc = await this.prisma.ragDocument.findUnique({ where: { fileId }, select: { id: true } });
+    const doc = await this.prisma.ragDocument.findUnique({ where: { fileId }, select: { id: true, fileId: true } });
     if (!doc) return [];
     
     const rows = await this.prisma.$queryRaw<Row[]>(
@@ -133,7 +138,7 @@ export class PrismaRagRepository implements IRagRepository {
         LIMIT ${safeLimit}
       `,
     );
-    return rows.map((c) => this.toChunkRecord(c as any));
+    return rows.map((c) => this.toChunkRecord({ ...(c as any), sourceFileId: doc.fileId }));
   }
 
   async listDocuments(): Promise<RagDocumentListItem[]> {

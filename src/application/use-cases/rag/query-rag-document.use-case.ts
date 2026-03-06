@@ -26,7 +26,7 @@ export class QueryRagDocumentUseCase {
     topK = 5,
     conversationId?: string,
     systemPromptAddition?: string,
-  ): Promise<{ answer: string; snippets: string[]; conversationId: string }> {
+  ): Promise<{ answer: string; snippets: string[]; conversationId: string; snippetSourceFileIds?: string[] }> {
     const queryKeywords = extractKeywordsFromQuestion(question, 14);
     let chunks = await this.ragRepo.findChunksByFileIdAndKeywords(fileId, queryKeywords, Math.max(topK, 15));
     if (chunks.length === 0) {
@@ -46,6 +46,7 @@ export class QueryRagDocumentUseCase {
     }
 
     const snippets = chunks.map((c) => c.text);
+    const snippetSourceFileIds = fileId === 'all' ? chunks.map((c) => c.sourceFileId ?? '') : undefined;
     const history = await this.convRepo.getMessages(conversationId, HISTORY_MESSAGES_LIMIT);
 
     const system = PROMPTS.RAG_SYSTEM(systemPromptAddition);
@@ -72,6 +73,6 @@ export class QueryRagDocumentUseCase {
     await this.convRepo.addMessage(conversationId, 'user', question);
     await this.convRepo.addMessage(conversationId, 'assistant', answer, snippets);
 
-    return { answer, snippets, conversationId };
+    return { answer, snippets, conversationId, ...(snippetSourceFileIds && { snippetSourceFileIds }) };
   }
 }

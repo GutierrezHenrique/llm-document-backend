@@ -20,6 +20,8 @@ export class QueryResponseDto {
   answer!: string;
   snippets!: string[];
   conversationId!: string;
+  /** When querying entire base (fileId 'all'), fileId per snippet for PDF links */
+  snippetSourceFileIds?: string[];
 }
 
 export class FilterBodyDto {

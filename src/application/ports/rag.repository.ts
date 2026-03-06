@@ -3,6 +3,8 @@ export interface RagChunkRecord {
   text: string;
   keywords: string[];
   embedding?: number[];
+  /** When querying entire base (fileId 'all'), source document fileId for building PDF links */
+  sourceFileId?: string;
 }
 
 export interface RagDocumentListItem {
